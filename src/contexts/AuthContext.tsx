@@ -21,13 +21,14 @@ async function recordLoginEvent(userId: string, eventType: 'login' | 'logout') {
   const ua = navigator.userAgent;
   const device = /mobile/i.test(ua) ? 'Mobile' : /tablet/i.test(ua) ? 'Tablet' : 'Desktop';
   const browser = ua.includes('Chrome') ? 'Chrome' : ua.includes('Firefox') ? 'Firefox' : ua.includes('Safari') ? 'Safari' : 'Unknown';
-  await supabase.from('login_logs').insert({
+  const { error } = await supabase.from('login_logs').insert({
     user_id: userId,
     event_type: eventType,
     user_agent: ua.slice(0, 200),
     device: `${device} / ${browser}`,
     location: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown',
   });
+  if (error) console.warn('Failed to record login event', error.message);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -40,29 +41,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (mounted && session?.user) login(mapSupabaseUser(session.user));
+    // Never leave the app stuck on the loading screen if the session check stalls
+    const fallback = setTimeout(() => {
       if (mounted) setLoading(false);
-    });
+    }, 5000);
 
+    const finish = () => {
+      clearTimeout(fallback);
+      if (mounted) setLoading(false);
+    };
+
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (mounted && session?.user) login(mapSupabaseUser(session.user));
+      })
+      .catch((err) => console.error('Failed to restore session', err))
+      .finally(finish);
+
+    // Keep this callback synchronous: calling other Supabase methods inside it
+    // can deadlock the auth client, so side effects are deferred with setTimeout.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       if (event === 'SIGNED_IN' && session?.user) {
-        const authUser = mapSupabaseUser(session.user);
-        login(authUser);
-        setLoading(false);
-        // Log login event
-        recordLoginEvent(session.user.id, 'login');
+        login(mapSupabaseUser(session.user));
+        finish();
+        const userId = session.user.id;
+        setTimeout(() => {
+          recordLoginEvent(userId, 'login').catch(() => {});
+        }, 0);
       } else if (event === 'SIGNED_OUT') {
         logout();
-        setLoading(false);
-      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        finish();
+      } else if ((event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') && session?.user) {
         login(mapSupabaseUser(session.user));
+        if (event === 'INITIAL_SESSION') finish();
+      } else if (event === 'INITIAL_SESSION') {
+        finish();
       }
     });
 
     return () => {
       mounted = false;
+      clearTimeout(fallback);
       subscription.unsubscribe();
     };
   }, []);
