@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UniMail — uniorbi.com</title>
-    <meta name="description" content="UniMail by uniorbi.com — World-class multi-account email management platform" />
+    <title>UniMail â uniorbi.com</title>
+    <meta name="description" content="UniMail by uniorbi.com â World-class multi-account email management platform" />
     <meta name="theme-color" content="#10b981" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
 
     <!-- Open Graph -->
-    <meta property="og:title" content="UniMail — uniorbi.com" />
+    <meta property="og:title" content="UniMail â uniorbi.com" />
     <meta property="og:description" content="World-class multi-account email management" />
     <meta property="og:type" content="website" />
 
@@ -37,5 +37,54 @@
         });
       }
     </script>
-  </body>
+  <script>/* DeployHub badge clearance */
+(function(){
+  if(window.__nhBadgeSafe)return;window.__nhBadgeSafe=1;
+  function findBadge(){
+    var nodes=document.querySelectorAll('a,iframe,div'),i,el,st,r;
+    for(i=0;i<nodes.length;i++){
+      el=nodes[i];st=getComputedStyle(el);
+      if(st.position!=='fixed'&&st.position!=='sticky')continue;
+      if(st.display==='none'||st.visibility==='hidden'||+st.opacity===0)continue;
+      r=el.getBoundingClientRect();
+      if(r.width<60||r.height<18||r.width>320||r.height>120)continue;
+      if(r.bottom>window.innerHeight-56&&r.right>window.innerWidth-56)return {el:el,w:r.width,h:r.height};
+    }
+    return null;
+  }
+  var settled=false;
+  function clear(){
+    if(settled)return;
+    var badge=findBadge();
+    if(!badge)return;
+    settled=true;
+    var pad=Math.ceil(badge.w)+14;
+    var bars=[],all=document.querySelectorAll('body *'),i,el,st,r;
+    for(i=0;i<all.length;i++){
+      el=all[i];st=getComputedStyle(el);
+      if(st.position!=='fixed'&&st.position!=='sticky')continue;
+      if(st.display==='none'||st.visibility==='hidden')continue;
+      r=el.getBoundingClientRect();
+      if(r.height<=120&&r.width>window.innerWidth*0.5&&r.bottom>window.innerHeight-28)bars.push(el);
+    }
+    if(bars.length){
+      for(i=0;i<bars.length;i++){
+        var cur=parseFloat(getComputedStyle(bars[i]).paddingRight)||0;
+        bars[i].style.paddingRight=(cur+pad)+'px';
+        bars[i].style.boxSizing='border-box';
+      }
+    } else {
+      var body=getComputedStyle(document.body);
+      document.body.style.paddingBottom=((parseFloat(body.paddingBottom)||0)+Math.ceil(badge.h)+10)+'px';
+    }
+  }
+  ['load','resize','orientationchange'].forEach(function(event){window.addEventListener(event,clear);});
+  document.addEventListener('DOMContentLoaded',clear);
+  setTimeout(clear,700);setTimeout(clear,2200);
+  var timer;
+  var schedule=function(){clearTimeout(timer);timer=setTimeout(clear,300);};
+  new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+</body>
 </html>
